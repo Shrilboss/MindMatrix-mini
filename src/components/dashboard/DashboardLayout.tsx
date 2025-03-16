@@ -23,6 +23,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { useAuth } from '@/contexts/AuthContext'; // Ensure this import exists
+
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -36,6 +38,7 @@ interface NavItem {
 }
 
 const DashboardLayout = ({ children, user }: DashboardLayoutProps) => {
+  const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -186,7 +189,11 @@ const DashboardLayout = ({ children, user }: DashboardLayoutProps) => {
                     variant="ghost" 
                     size="sm" 
                     className="mt-2 justify-start"
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                      signOut(); // Properly clear the session
+                      navigate('/'); // Redirect after logout
+                    }}
+                    // onClick={() => navigate('/')}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out

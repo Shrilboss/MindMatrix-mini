@@ -1,7 +1,8 @@
 
+import { StringToBoolean } from 'class-variance-authority/types';
 import { Module, Mentor } from './program';
 
-export type UserRole = 'college-credit-student' | 'independent-student' | 'professional' | 'independent' | 'college-access' | 'looking-for-job' | null;
+export type UserRole = 'college-credit-student' | 'independent-student' | 'professional' | 'independent' | 'college-access' | 'looking-for-job' | 'admin' | null;
 
 export interface CollegeDetails {
   state: string;
@@ -15,6 +16,7 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   bio?: string;
+  phone?: string
   education?: EducationExperience[];
   professional?: ProfessionalExperience[];
   skills?: Skill[];
@@ -33,18 +35,18 @@ export interface UserProfile {
 
 export interface EducationExperience {
   institution: string;
-  degree: string;
-  field: string;
-  startDate: string;
+  degree?: string;
+  field?: string;
+  startDate?: string;
   endDate?: string;
-  current: boolean;
+  current?: boolean;
   description?: string;
 }
 
 export interface ProfessionalExperience {
   company: string;
-  position: string;
-  startDate: string;
+  position?: string;
+  startDate?: string;
   endDate?: string;
   current: boolean;
   description?: string;

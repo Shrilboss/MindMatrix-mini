@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, GraduationCap, Users, Lightbulb, BookOpen, Check, ChevronRight, Briefcase, Mail } from 'lucide-react';
+// import { ArrowLeft, GraduationCap, Users, Check, ChevronRight, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
 import CollegeVerificationForm from '@/components/signup/CollegeVerificationForm';
@@ -15,8 +16,9 @@ const Signup = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { signUp } = useAuth();
-  
+  const { signUp , signInWithGoogle} = useAuth();
+
+  // const {signInWithGoogle} = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,26 +33,17 @@ const Signup = () => {
     experience: '',
   });
 
-  const handleRoleSelect = (role: UserRole) => {
-    setSelectedRole(role);
-  };
-
+  // Role selection handlers
+  const handleRoleSelect = (role: UserRole) => setSelectedRole(role);
   const handleCollegeAccessClick = () => {
     setSelectedRole('college-access');
     setStep(2);
   };
-
-  const handleContinue = () => {
-    if (selectedRole) {
-      setStep(3);
-    }
-  };
-
+  const handleContinue = () => selectedRole && setStep(3);
   const handleBack = () => {
     setStep(1);
     setSelectedRole(null);
   };
-
   const handleCollegeVerification = (details: CollegeDetails) => {
     console.log('College details:', details);
     setStep(3);
@@ -71,7 +64,6 @@ const Signup = () => {
     
     try {
       setIsSubmitting(true);
-      
       const fullName = `${formData.firstName} ${formData.lastName}`;
       
       await signUp(
@@ -106,19 +98,46 @@ const Signup = () => {
           })
         }
       );
+      // await signUp(
+      //   formData.email, 
+      //   formData.password,
+      //   {
+      //     name: fullName,
+      //     role: selectedRole,
+      //     ...(selectedRole === 'college-credit-student' && {
+      //       institution: formData.institution,
+      //       fieldOfStudy: formData.fieldOfStudy
+      //     }),
+      //     ...(selectedRole === 'professional' && {
+      //       company: formData.company,
+      //       position: formData.jobTitle
+      //     }),
+      //     ...(selectedRole === 'independent' && {
+      //       careerInterest: formData.desiredField,
+      //       experience: formData.experience
+      //     })
+      //   }
+      // );
       
       navigate('/onboarding');
-      
-    } catch (error) {
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleGoogleSignup = () => {
-    console.log('Google signup clicked');
-    setTimeout(() => {
-      navigate('/onboarding');
-    }, 1000);
+  const handleGoogleSignup = async () => {
+    try {
+      signInWithGoogle(() => {
+        navigate('/onboarding'); // ✅ Navigate ONLY after auth completes
+      });
+    
+      // await signInWithGoogle();
+      // navigate('/onboarding');
+    } catch (error: any) {
+      toast.error(error.message || 'Google signup failed');
+    }
   };
 
   const roleOptions = [
@@ -141,7 +160,7 @@ const Signup = () => {
       icon: <Users className="h-6 w-6" />,
     },
   ];
-
+  // Role-specific form components
   const getRoleSpecificQuestions = () => {
     switch (selectedRole) {
       case 'college-credit-student':
@@ -152,7 +171,7 @@ const Signup = () => {
             </label>
             <input
               id="institution"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               type="text"
               placeholder="Enter your school or university"
               value={formData.institution}
@@ -164,7 +183,7 @@ const Signup = () => {
             </label>
             <input
               id="fieldOfStudy"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               type="text"
               placeholder="E.g., Computer Science, Business, etc."
               value={formData.fieldOfStudy}
@@ -180,9 +199,9 @@ const Signup = () => {
             </label>
             <input
               id="company"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               type="text"
-              placeholder="Enter your company name"
+              placeholder="Enter your Company name"
               value={formData.company}
               onChange={handleInputChange}
               required
@@ -192,9 +211,9 @@ const Signup = () => {
             </label>
             <input
               id="jobTitle"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               type="text"
-              placeholder="Enter your current job title"
+              placeholder="Enter your current Job Title"
               value={formData.jobTitle}
               onChange={handleInputChange}
             />
@@ -208,7 +227,7 @@ const Signup = () => {
             </label>
             <input
               id="desiredField"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               type="text"
               placeholder="E.g., Software Development, Data Science, etc."
               value={formData.desiredField}
@@ -220,11 +239,11 @@ const Signup = () => {
             </label>
             <select
               id="experience"
-              className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-3 py-2 border border-input rounded-md"
               value={formData.experience}
               onChange={handleInputChange}
             >
-              <option value="">Select your experience level</option>
+              <option value="">Experience Level</option>
               <option value="0">0 (Fresh Graduate)</option>
               <option value="1-2">1-2 years</option>
               <option value="3-5">3-5 years</option>
@@ -251,10 +270,10 @@ const Signup = () => {
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold mb-3">Join MindMatrix</h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Create your account to unlock the full potential of AI-powered education and career development
+              Create your account to unlock AI-powered education and career development
             </p>
           </div>
-          
+
           <button 
             onClick={handleCollegeAccessClick}
             className="w-full bg-primary/90 text-white rounded-xl p-6 mb-10 text-center hover:bg-primary transition-colors cursor-pointer"
@@ -265,66 +284,75 @@ const Signup = () => {
           <AnimatePresence mode="wait">
             {step === 1 ? (
               <motion.div
-                key="role-selection"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <h2 className="text-xl font-semibold">Are you an independent learner?</h2>
-                    <p className="text-muted-foreground mt-1">Take control of your future with personalized learning paths</p>
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold text-center">I am a...</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    {roleOptions.map((role) => (
-                      <button
-                        key={role.id}
-                        onClick={() => handleRoleSelect(role.id as UserRole)}
-                        className={`group relative rounded-xl border p-6 text-left transition-all hover-scale ${
-                          selectedRole === role.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="space-y-3">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            selectedRole === role.id
-                              ? 'bg-primary text-white'
-                              : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
-                            } transition-colors`}
-                          >
-                            {role.icon}
-                          </div>
-                          <div className="space-y-1.5">
-                            <h3 className="font-medium">{role.title}</h3>
-                            <p className="text-sm text-muted-foreground">{role.description}</p>
-                          </div>
-                        </div>
-                        {selectedRole === role.id && (
-                          <div className="absolute top-4 right-4">
-                            <Check className="h-5 w-5 text-primary" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-8 text-center">
-                    <Button 
-                      size="lg" 
-                      onClick={handleContinue}
-                      disabled={!selectedRole}
-                    >
-                      Continue
-                      <ChevronRight size={16} className="ml-2" />
-                    </Button>
-                  </div>
+              key="role-selection"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="space-y-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-semibold">Are you an independent learner?</h2>
+                  <p className="text-muted-foreground mt-1">Take control of your future with personalized learning paths</p>
                 </div>
-              </motion.div>
+                
+                <h3 className="text-xl font-semibold text-center">I am a...</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  {roleOptions.map((role) => (
+                    <button
+                      key={role.id}
+                      onClick={() => handleRoleSelect(role.id as UserRole)}
+                      className={`group relative rounded-xl border p-6 text-left transition-all hover-scale ${
+                        selectedRole === role.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          selectedRole === role.id
+                            ? 'bg-primary text-white'
+                            : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
+                          } transition-colors`}
+                        >
+                          {role.icon}
+                        </div>
+                        <div className="space-y-1.5">
+                          <h3 className="font-medium">{role.title}</h3>
+                          <p className="text-sm text-muted-foreground">{role.description}</p>
+                        </div>
+                      </div>
+                      {selectedRole === role.id && (
+                        <div className="absolute top-4 right-4">
+                          <Check className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-8 text-center">
+                  <Button 
+                    size="lg" 
+                    onClick={handleContinue}
+                    disabled={!selectedRole}
+                  >
+                    Continue
+                    <ChevronRight size={16} className="ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+              // <motion.div
+              //   key="role-selection"
+              //   initial={{ opacity: 0, y: 20 }}
+              //   animate={{ opacity: 1, y: 0 }}
+              //   exit={{ opacity: 0, y: -20 }}
+              //   transition={{ duration: 0.3 }}
+              // >
+              //   {/* Role selection UI remains similar */}
+              // </motion.div>
             ) : step === 2 ? (
               <motion.div
                 key="college-verification"
@@ -363,7 +391,7 @@ const Signup = () => {
                         onClick={handleGoogleSignup}
                         variant="outline"
                         size="lg"
-                        className="w-full md:w-2/3 flex items-center justify-center gap-2 py-6"
+                        className="w-full flex items-center justify-center gap-2 py-6"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                           <path
@@ -386,14 +414,13 @@ const Signup = () => {
                         </svg>
                         Continue with Google
                       </Button>
-                      
+
                       <div className="flex items-center w-full md:w-2/3">
                         <div className="flex-1 h-px bg-border"></div>
                         <span className="px-4 text-sm text-muted-foreground">or signup with email</span>
                         <div className="flex-1 h-px bg-border"></div>
                       </div>
                     </div>
-
                     <form className="space-y-6" onSubmit={handleSignupSubmit}>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -494,7 +521,7 @@ const Signup = () => {
                         </label>
                       </div>
 
-                      <div className="mt-8">
+                      <div className='mt-8'>
                         <Button size="lg" className="w-full" type="submit" disabled={isSubmitting}>
                           {isSubmitting ? (
                             <span className="flex items-center justify-center">
@@ -507,15 +534,14 @@ const Signup = () => {
                         </Button>
                       </div>
                     </form>
-
                     <p className="text-sm text-center text-muted-foreground mt-6">
                       Already have an account?{' '}
                       <Link to="/login" className="text-primary hover:underline">
                         Log in
                       </Link>
                     </p>
-                  </div>
                 </div>
+              </div>
               </motion.div>
             )}
           </AnimatePresence>

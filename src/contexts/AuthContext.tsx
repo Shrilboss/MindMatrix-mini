@@ -2,21 +2,8 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { UserProfile } from '@/types/auth';
 import { toast } from 'sonner';
-
-// Sample user profile data
-const sampleProfile: UserProfile = {
-  name: 'Demo User',
-  email: 'demo@example.com',
-  role: 'independent',
-  mmCoins: 100,
-  engagement: {
-    daily: 75,
-    weekly: 340,
-    monthly: 1200,
-    streak: 7
-  }
-};
-
+// import { resolve } from 'path';
+const API_URL = import.meta.env.VITE_API_URL;
 interface AuthContextType {
   user: any | null;
   profile: UserProfile | null;
@@ -24,6 +11,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
   signOut: () => Promise<void>;
+  // signInWithGoogle: () => void;
+  signInWithGoogle : (onSuccess?: (token: string) => void) => void; 
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
@@ -34,145 +23,243 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Check if user is already logged in (from localStorage)
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setProfile(sampleProfile);
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await fetchUserProfile();
+        } catch (error) {
+          console.error('Session validation failed:', error);
+          signOut();
+        }
+      }
+    };
+    checkAuth();
   }, []);
 
-  // Sign in function
-  const signIn = async (email: string, password: string) => {
+  const fetchUserProfile = async () => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
-      // Simple email validation
-      if (!email.includes('@')) {
-        throw new Error('Invalid email format');
-      }
+      if (!response.ok) throw new Error('Session expired');
       
-      // Simple password validation
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      
-      // Mock successful login
-      const userData = { id: 'demo-user-id', email };
-      setUser(userData);
-      setProfile(sampleProfile);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(userData));
-      
+      const data = await response.json();
+      setUser(data.user);
+      setProfile(data.profile);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthResponse = async (response: Response) => {
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Authentication failed');
+    
+    localStorage.setItem('token', data.token);
+    await fetchUserProfile();
+    return data;
+  };
+
+  const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    // await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' }); // Clear session
+    try {
+      // await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' }); // Clear session
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      await handleAuthResponse(response);
       toast.success('Logged in successfully');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error.message);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign up function
   const signUp = async (email: string, password: string, userData: Partial<UserProfile>) => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Simple email validation
-      if (!email.includes('@')) {
-        throw new Error('Invalid email format');
-      }
-      
-      // Simple password validation
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      
-      // Mock successful registration
-      const newUserData = { id: 'new-user-id', email };
-      setUser(newUserData);
-      
-      // Create profile by merging sample with provided data
-      const newProfile = { ...sampleProfile, ...userData, email };
-      setProfile(newProfile);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(newUserData));
-      
-      toast.success('Registered successfully');
+      const response = await fetch(`${API_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, ...userData })
+      });
+      await handleAuthResponse(response);
+      toast.success('Registration successful');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up');
+      toast.error(error.message);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign out function
   const signOut = async () => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Clear user state
+      await fetch(`${API_URL}/api/auth/logout`,{
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      localStorage.removeItem('token');
+      sessionStorage.clear();
+
       setUser(null);
       setProfile(null);
-      
-      // Remove from localStorage
-      localStorage.removeItem('user');
-      
+
+      console.log("Logged out successful");
       toast.info('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
 
-  // Update profile function
+  const signInWithGoogle = (onSuccess?: (token: string) => void) => {
+    const popup = window.open(
+      `${API_URL}/api/auth/google`,
+      'GoogleAuth',
+      'width=500,height=600'
+    );
+  
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return; // Security check
+  
+      if (event.data.token) {
+        localStorage.setItem('token', event.data.token);
+        fetchUserProfile(); // Update user state
+        onSuccess(event.data.token); // ✅ Call the success callback
+        popup?.close();
+      }
+  
+      if (event.data.error) {
+        toast.error(event.data.error);
+        popup?.close();
+      }
+    };
+  
+    window.addEventListener('message', handleAuthMessage);
+    
+    // Cleanup event listener when popup closes
+    const checkPopupClosed = setInterval(() => {
+      if (!popup || popup.closed) {
+        clearInterval(checkPopupClosed);
+        window.removeEventListener('message', handleAuthMessage);
+      }
+    }, 500);
+  };
+  
+  // const signInWithGoogle = () => {
+  //   const popup = window.open(
+  //     `${API_URL}/api/auth/google`,
+  //     'GoogleAuth',
+  //     'width=500,height=600'
+  //   );
+  
+  //   // Add message listener
+  //   window.addEventListener('message', (event) => {
+  //     // Security check - verify origin
+  //     if (event.origin !== window.location.origin) return;
+  
+  //     if (event.data.token) {
+  //       // Handle successful login
+  //       localStorage.setItem('token', event.data.token);
+  //       fetchUserProfile();
+  //       resolve(event.data.token);
+  //       // navigate('/onboarding');
+  //       popup?.close();
+  //     }
+  
+  //     if (event.data.error) {
+  //       toast.error(event.data.error);
+  //       popup?.close();
+  //     }
+  //   });
+  // };
+  // const signInWithGoogle = () => {
+  //   const popup = window.open(
+  //     `${API_URL}/api/auth/google`,
+  //     '_blank',
+  //     'width=500,height=600'
+  //   );
+  
+  //   return new Promise((resolve, reject) => {
+  //     const handleAuthMessage = (event: MessageEvent) => {
+  //       if (event.origin !== API_URL) return; // Security check
+  //       const { token } = event.data;
+  
+  //       if (token) {
+  //         localStorage.setItem('token', token);
+  //         window.removeEventListener('message', handleAuthMessage);
+  //         popup?.close(); // Close popup
+  //         resolve(token);
+  //       } else {
+  //         reject(new Error('Google signup failed'));
+  //       }
+  //     };
+  
+  //     window.addEventListener('message', handleAuthMessage);
+  //   });
+  // };
+  
+  // const signInWithGoogle = () => {
+  //   window.open(`${API_URL}/api/auth/google`, '_blank', 'width=500,height=600');
+  // };
+
   const updateProfile = async (data: Partial<UserProfile>) => {
     setLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Update the profile state with the new data
-      setProfile(prevProfile => {
-        if (!prevProfile) return data as UserProfile;
-        return { ...prevProfile, ...data };
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data)
       });
       
+      const updatedProfile = await handleAuthResponse(response);
+      setProfile(updatedProfile);
       toast.success('Profile updated successfully');
-    } catch (error) {
-      toast.error('Failed to update profile');
+    } catch (error: any) {
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const value = {
-    user,
-    profile,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    updateProfile,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      updateProfile,
+      signInWithGoogle
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

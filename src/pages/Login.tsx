@@ -39,9 +39,19 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
+      console.log("Logged In Successfully!!!");
+      console.log(user);
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
+
+  // useEffect(() => {
+  //   if (user) {
+  //     console.log("Logged In Successfully!!!");
+  //     console.log(user);
+  //     navigate(from, { replace: true });
+  //   }
+  // }, [user]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
