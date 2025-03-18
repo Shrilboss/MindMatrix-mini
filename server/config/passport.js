@@ -17,7 +17,10 @@ const configurePassport = (passport) => {
           ]
         });
         
+        let NewUser = false;
         if (!user) {
+          console.log("New user ...")
+          NewUser = true;
           user = new User({
             googleId: profile.id,
             email: profile.emails[0].value,
@@ -29,19 +32,28 @@ const configurePassport = (passport) => {
           await user.save();
         }
         
-        return done(null, user);
+        if(!NewUser){
+          console.log("Existing user",user);
+        }
+        
+        return done(null, {user, NewUser});
       } catch (error) {
+        console.log("Error Signing up",err);
         return done(error);
       }
     }));
   
     // Add serialization/deserialization
-    passport.serializeUser((user, done) => done(null, user.id));
-    passport.deserializeUser(async (id, done) => {
+    passport.serializeUser((data, done) => {
+      console.log("Serialising user:",data.user);
+      done(null, {id: data.user.id, NewUser: data.NewUser})});
+    passport.deserializeUser(async (data, done) => {
       try {
-        const user = await User.findById(id);
-        done(null, user);
+        const user = await User.findById(data.id);
+        console.log("Deserialized user",user);
+        done(null, {user,NewUser: data.NewUser});
       } catch (error) {
+        console.log("Error Deserialising",error);
         done(error);
       }
     });

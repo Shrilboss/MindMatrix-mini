@@ -10,10 +10,11 @@ const auth = async (req, res, next) => {
     }).select('-password');
 
     if (!user) throw new Error();
-    
+    console.log("User Authernticated",user);
     req.user = user;
     next();
   } catch (error) {
+    console.log("Unable to authenticate",error);
     res.status(401).json({ message: 'Please authenticate' });
   }
 };

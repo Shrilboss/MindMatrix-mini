@@ -38,7 +38,7 @@ const App = () => (
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/auth/success" element={<AuthSuccess />} />
+              <Route path="/auth-success" element={<AuthSuccess />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

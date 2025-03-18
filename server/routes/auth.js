@@ -6,6 +6,11 @@ const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const express = require('express');
 const auth = require('../middleware/auth');
+require('dotenv').config();
+const CLIENT_URL = process.env.CLIENT_URL;
+
+const successLoginUrl = `${CLIENT_URL}/sucess`;
+const errorLoginUrl = `${CLIENT_URL}`;
 
 //defaultProfile for every user
 const defaultProfile = {
@@ -41,6 +46,7 @@ router.post('/signup', async (req, res) => {
     const existingUser = await User.findOne({ email });
     
     if (existingUser) {
+      console.log("User already exists");
       return res.status(400).json({ message: 'User already exists' });
     }
 
@@ -121,25 +127,34 @@ router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
+// failureMessage: "Cannot login in using Google",
+//     failureRedirect: errorLoginUrl,
+//     successRedirect: successLoginUrl 
 // TODO: Add JWT_SECRET
 router.get('/google/callback',
-  passport.authenticate('google', { session: false }),
+  passport.authenticate('google', { 
+    session: false,
+    }),
   (req, res) => {
+    try {
+    const user = req.user.user;
+    const isNewUser = req.user.NewUser;
+
+    console.log("User :",user);
+    res.header('Cross-Origin-Opener-Policy', 'same-origin');
+    res.header('Cross-Origin-Embedder-Policy', 'require-corp');
     const token = jwt.sign(
-      { userId: req.user._id },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // const script = `
-    //   <script>
-    //     window.opener.postMessage({ token: '${token}' }, '${process.env.CLIENT_URL}');
-    //     window.close();
-    //   </script>
-    // `;
+    res.redirect(`${process.env.CLIENT_URL}/auth-success?token=${token}&newUser=${isNewUser}`);
     
-    // res.send(script); // Sends the script to close the popup
-    res.redirect(`${process.env.CLIENT_URL}/auth/success?token=${token}`);
+    } catch (error){
+      console.error("Google Auth Callback Error:", error);
+      res.redirect(`${process.env.CLIENT_URL}/auth-success?error=Authentication failed`);
+    }
   }
 );
 

@@ -39,8 +39,7 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      console.log("Logged In Successfully!!!");
-      console.log(user);
+      console.log("Logged In Successfully!!!",user);
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);

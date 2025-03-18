@@ -11,8 +11,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
   signOut: () => Promise<void>;
-  // signInWithGoogle: () => void;
-  signInWithGoogle : (onSuccess?: (token: string) => void) => void; 
+  signInWithGoogle: () => void;
+  // signInWithGoogle : (onSuccess?: (token: string) => void) => void; 
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async () => {
     setLoading(true);
+    console.log("Fetching User Profile");
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
@@ -50,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!response.ok) throw new Error('Session expired');
       
       const data = await response.json();
+      console.log("Feteched user data",data);
       setUser(data.user);
       setProfile(data.profile);
     } finally {
@@ -60,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleAuthResponse = async (response: Response) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Authentication failed');
-    
+    console.log("Handled response Fetched data",data)
     localStorage.setItem('token', data.token);
     await fetchUserProfile();
     return data;
@@ -68,15 +70,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    // await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' }); // Clear session
+    console.log("Signing in");
     try {
-      // await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' }); // Clear session
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       await handleAuthResponse(response);
+      console.log("Logged in successfully");
       toast.success('Logged in successfully');
     } catch (error: any) {
       toast.error(error.message);
@@ -88,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, userData: Partial<UserProfile>) => {
     setLoading(true);
+    console.log("Signing up");
     try {
       const response = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
@@ -95,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ email, password, ...userData })
       });
       await handleAuthResponse(response);
+      console.log("Registation successful");
       toast.success('Registration successful');
     } catch (error: any) {
       toast.error(error.message);
@@ -118,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
 
-      console.log("Logged out successful");
+      console.log("Logged out successfully");
       toast.info('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
@@ -127,40 +131,143 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
-
-  const signInWithGoogle = (onSuccess?: (token: string) => void) => {
-    const popup = window.open(
-      `${API_URL}/api/auth/google`,
-      'GoogleAuth',
-      'width=500,height=600'
-    );
+  const signInWithGoogle = () => {
+    window.location.href = `${API_URL}/api/auth/google`;
+  }
+  // const signInWithGoogle = () => {
+  //   return new Promise<void>((resolve, reject) => {
+  //     const popup = window.open(
+  //       `${API_URL}/api/auth/google`,
+  //       'GoogleAuth',
+  //       'width=500,height=600'
+  //     );
   
-    const handleAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return; // Security check
+  //     const handleMessage = async (event: MessageEvent) => {
+  //       if (event.origin !== window.location.origin) return;
   
-      if (event.data.token) {
-        localStorage.setItem('token', event.data.token);
-        fetchUserProfile(); // Update user state
-        onSuccess(event.data.token); // ✅ Call the success callback
-        popup?.close();
-      }
+  //       try {
+  //         if (event.data.token) {
+  //           console.log("Hello");
+  //           localStorage.setItem('token', event.data.token);
+  //           await fetchUserProfile();
+  //           popup?.close();
+  //           resolve();
+  //         }
   
-      if (event.data.error) {
-        toast.error(event.data.error);
-        popup?.close();
-      }
-    };
+  //         if (event.data.error) {
+  //           console.log(event.data.error);
+  //           popup?.close();
+  //           reject(new Error(event.data.error));
+  //         }
+  //       } catch (error) {
+  //         popup?.close();
+  //         console.log(error);
+  //         reject(error);
+  //       }
+  //     };
   
-    window.addEventListener('message', handleAuthMessage);
+  //     window.addEventListener('message', handleMessage);
+  
+  //     const interval = setInterval(() => {
+  //       if (popup?.closed) {
+  //         clearInterval(interval);
+  //         window.removeEventListener('message', handleMessage);
+  //         reject(new Error('Popup closed by user'));
+  //       }
+  //     }, 500);
+  //   });
+  // };
+  // const signInWithGoogle = () => {
+  //   return new Promise<void>((resolve, reject) => {
+  //     const popup = window.open(
+  //       `${API_URL}/api/auth/google`,
+  //       'GoogleAuth',
+  //       'width=500,height=600'
+  //     );
+  
+  //     const checkPopupClosed = setInterval(() => {
+  //       if (popup?.closed) {
+  //         clearInterval(checkPopupClosed);
+  //         resolve();
+  //       }
+  //     }, 500);
+  //   });
+  // };
+  
+  // const signInWithGoogle = () => {
+  //   return new Promise<void>((resolve, reject) => {
+  //     const popup = window.open(
+  //       `${API_URL}/api/auth/google`,
+  //       'GoogleAuth',
+  //       'width=500,height=600'
+  //     );
+  
+  //     const handleMessage = async (event: MessageEvent) => {
+  //       if (event.origin !== window.location.origin) return;
+  
+  //       try {
+  //         if (event.data.token) {
+  //           localStorage.setItem('token', event.data.token);
+  //           await fetchUserProfile();
+  //           popup?.close();
+  //           resolve(); // Resolve after successful auth
+  //         }
+  
+  //         if (event.data.error) {
+  //           popup?.close();
+  //           reject(new Error(event.data.error));
+  //         }
+  //       } catch (error) {
+  //         popup?.close();
+  //         reject(error);
+  //       }
+  //     };
+  
+  //     window.addEventListener('message', handleMessage);
+  
+  //     // Cleanup listener when popup closes
+  //     const interval = setInterval(() => {
+  //       if (popup?.closed) {
+  //         clearInterval(interval);
+  //         window.removeEventListener('message', handleMessage);
+  //         reject(new Error('Popup closed by user'));
+  //       }
+  //     }, 500);
+  //   });
+  // };
+  // const signInWithGoogle = (onSuccess?: (token: string) => void) => {
+  //   const popup = window.open(
+  //     `${API_URL}/api/auth/google`,
+  //     'GoogleAuth',
+  //     'width=500,height=600'
+  //   );
+  
+  //   const handleAuthMessage = (event: MessageEvent) => {
+  //     if (event.origin !== window.location.origin) return; // Security check
+  
+  //     if (event.data.token) {
+  //       localStorage.setItem('token', event.data.token);
+  //       fetchUserProfile(); // Update user state
+  //       onSuccess(event.data.token); // ✅ Call the success callback
+  //       popup?.close();
+  //     }
+  
+  //     if (event.data.error) {
+  //       toast.error(event.data.error);
+  //       popup?.close();
+  //     }
+  //   };
+  
+  //   window.addEventListener('message', handleAuthMessage);
     
-    // Cleanup event listener when popup closes
-    const checkPopupClosed = setInterval(() => {
-      if (!popup || popup.closed) {
-        clearInterval(checkPopupClosed);
-        window.removeEventListener('message', handleAuthMessage);
-      }
-    }, 500);
-  };
+  //   // Cleanup event listener when popup closes
+  //   const checkPopupClosed = setInterval(() => {
+  //     if (!popup || popup.closed) {
+  //       clearInterval(checkPopupClosed);
+  //       window.removeEventListener('message', handleAuthMessage);
+  //     }
+  //   }, 500);
+  // };
   
   // const signInWithGoogle = () => {
   //   const popup = window.open(

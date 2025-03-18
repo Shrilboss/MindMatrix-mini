@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, GraduationCap, Users, Lightbulb, BookOpen, Check, ChevronRight, Briefcase, Mail } from 'lucide-react';
+import { ArrowLeft, GraduationCap, Users, Lightbulb, BookOpen, Check, ChevronRight, Briefcase, Mail , Eye, EyeOff} from 'lucide-react';
 // import { ArrowLeft, GraduationCap, Users, Check, ChevronRight, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
@@ -15,6 +15,8 @@ const Signup = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { signUp , signInWithGoogle} = useAuth();
 
@@ -47,6 +49,10 @@ const Signup = () => {
   const handleCollegeVerification = (details: CollegeDetails) => {
     console.log('College details:', details);
     setStep(3);
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -98,26 +104,6 @@ const Signup = () => {
           })
         }
       );
-      // await signUp(
-      //   formData.email, 
-      //   formData.password,
-      //   {
-      //     name: fullName,
-      //     role: selectedRole,
-      //     ...(selectedRole === 'college-credit-student' && {
-      //       institution: formData.institution,
-      //       fieldOfStudy: formData.fieldOfStudy
-      //     }),
-      //     ...(selectedRole === 'professional' && {
-      //       company: formData.company,
-      //       position: formData.jobTitle
-      //     }),
-      //     ...(selectedRole === 'independent' && {
-      //       careerInterest: formData.desiredField,
-      //       experience: formData.experience
-      //     })
-      //   }
-      // );
       
       navigate('/onboarding');
     } catch (error: any) {
@@ -129,12 +115,7 @@ const Signup = () => {
 
   const handleGoogleSignup = async () => {
     try {
-      signInWithGoogle(() => {
-        navigate('/onboarding'); // ✅ Navigate ONLY after auth completes
-      });
-    
-      // await signInWithGoogle();
-      // navigate('/onboarding');
+      signInWithGoogle(); 
     } catch (error: any) {
       toast.error(error.message || 'Google signup failed');
     }
@@ -475,12 +456,19 @@ const Signup = () => {
                         <input
                           id="password"
                           className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          type="password"
+                          type={showPassword ? "text" : "password"}
                           placeholder="Create a password"
                           value={formData.password}
                           onChange={handleInputChange}
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={togglePasswordVisibility}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
                         <p className="text-xs text-muted-foreground mt-1">
                           Password must be at least 8 characters long with a combination of letters, numbers, and symbols
                         </p>
